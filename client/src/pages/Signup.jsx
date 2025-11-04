@@ -3,14 +3,24 @@ import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { connectSocket } from "../services/socket";
 import { decodeToken } from "../utils/auth";
+import { useToastContext } from "../context/ToastContext";
 
 export default function Signup() {
+  const toast = useToastContext();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (form.password.length < 6) {
+      return toast.error("Password must be at least 6 characters long");
+    }
+
     try {
+      setLoading(true);
       const { data } = await API.post("/auth/signup", form);
       localStorage.setItem("token", data.token);
       
@@ -20,10 +30,12 @@ export default function Signup() {
         connectSocket(decoded.id);
       }
       
-      alert("Account created successfully 🎉");
+      toast.success("Account created successfully! 🎉");
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.error || "Signup failed");
+      toast.error(err.response?.data?.error || "Signup failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,8 +94,16 @@ export default function Signup() {
           <button
             type="submit"
             className="btn btn-success w-100 py-2 fw-semibold"
+            disabled={loading}
           >
-            Sign Up
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                Creating account...
+              </>
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </form>
 

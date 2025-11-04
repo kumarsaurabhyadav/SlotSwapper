@@ -8,13 +8,14 @@ import Marketplace from "./pages/Marketplace";
 import Requests from "./pages/Requests";
 import { connectSocket, disconnectSocket } from "./services/socket";
 import { getUserId } from "./utils/auth";
+import { ToastProvider } from "./context/ToastContext";
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/" replace />;
 }
 
-export default function App() {
+function AppContent() {
   useEffect(() => {
     // Connect Socket.io when user is logged in
     const userId = getUserId();
@@ -29,7 +30,7 @@ export default function App() {
   }, []);
 
   return (
-    <Router>
+    <>
       <Navbar />
       <Routes>
         {/* Public Routes */}
@@ -64,6 +65,16 @@ export default function App() {
           }
         />
       </Routes>
-    </Router>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </ToastProvider>
   );
 }

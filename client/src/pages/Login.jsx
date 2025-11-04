@@ -3,14 +3,18 @@ import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { connectSocket } from "../services/socket";
 import { decodeToken } from "../utils/auth";
+import { useToastContext } from "../context/ToastContext";
 
 export default function Login() {
+  const toast = useToastContext();
   const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setLoading(true);
       const { data } = await API.post("/auth/login", form);
       localStorage.setItem("token", data.token);
       
@@ -20,10 +24,12 @@ export default function Login() {
         connectSocket(decoded.id);
       }
       
-      alert("Welcome back! 👋");
+      toast.success("Welcome back! 👋");
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.error || "Login failed");
+      toast.error(err.response?.data?.error || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,8 +76,16 @@ export default function Login() {
           <button
             type="submit"
             className="btn btn-primary w-100 py-2 fw-semibold"
+            disabled={loading}
           >
-            Login
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                Logging in...
+              </>
+            ) : (
+              "Login"
+            )}
           </button>
         </form>
 
