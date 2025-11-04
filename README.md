@@ -36,6 +36,7 @@ SlotSwapper enables users to:
 
 ### Core Features
 - ✅ User Authentication (Sign Up / Log In with JWT)
+- ✅ Password Reset (Forgot Password functionality)
 - ✅ Calendar Management (Create, Read, Update, Delete events)
 - ✅ Swappable Slots Marketplace
 - ✅ Swap Request System (Request, Accept, Reject)
@@ -44,9 +45,11 @@ SlotSwapper enables users to:
 
 ### Bonus Features
 - ✅ Real-time Notifications via WebSocket
+- ✅ Password Reset Flow
 - ✅ Transaction-safe swap handling
 - ✅ Input validation and error handling
 - ✅ Responsive UI with Bootstrap
+- ✅ Modern UI with animations and transitions
 
 ## 🛠 Technology Stack
 
@@ -185,6 +188,8 @@ Authorization: Bearer <your_jwt_token>
 |--------|----------|-------------|---------------|
 | POST | `/auth/signup` | Create new user account | No |
 | POST | `/auth/login` | Login user | No |
+| POST | `/auth/forgot-password` | Request password reset | No |
+| POST | `/auth/reset-password` | Reset password with token | No |
 
 **Signup Request:**
 ```json
@@ -209,6 +214,21 @@ Authorization: Bearer <your_jwt_token>
   "message": "Login successful",
   "user": { "id": "...", "name": "John Doe", "email": "..." },
   "token": "jwt_token_here"
+}
+```
+
+**Forgot Password Request:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Reset Password Request:**
+```json
+{
+  "token": "reset_token_from_email",
+  "newPassword": "new_password_here"
 }
 ```
 
@@ -333,7 +353,7 @@ The application uses Socket.io for real-time notifications:
 ## 🔮 Future Improvements
 
 1. **Calendar View**: Add a visual calendar grid instead of just list view
-2. **Email Notifications**: Send email notifications in addition to WebSocket
+2. **Email Notifications**: Send email notifications for password reset (currently returns token in response)
 3. **Search & Filters**: Filter swappable slots by date, time, or user
 4. **Swap History**: Show past successful swaps
 5. **User Profiles**: Add user profiles with ratings/reviews
@@ -346,13 +366,14 @@ The application uses Socket.io for real-time notifications:
 ## 📝 Environment Variables
 
 ### Backend (.env)
-```
+```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/slotswap
 JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
 PORT=4000
+FRONTEND_URL=http://localhost:3000
 ```
 
-### Frontend
+### Frontend Configuration
 Update `client/src/services/api.js` and `client/src/services/socket.js` if backend URL changes.
 
 ## 🧪 Testing

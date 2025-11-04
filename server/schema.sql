@@ -11,8 +11,13 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
+  reset_token TEXT,  -- For password reset
+  reset_token_expiry TIMESTAMP,  -- For password reset expiry
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Index for reset token
+CREATE INDEX IF NOT EXISTS idx_reset_token ON users(reset_token);
 
 -- 3️⃣ Events table
 CREATE TYPE event_status AS ENUM ('BUSY', 'SWAPPABLE', 'SWAP_PENDING');

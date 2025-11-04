@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import API from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { connectSocket } from "../services/socket";
 import { decodeToken } from "../utils/auth";
 import { useToastContext } from "../context/ToastContext";
@@ -61,8 +61,17 @@ export default function Login() {
             />
           </div>
 
-          <div className="mb-4">
-            <label className="form-label fw-semibold">Password</label>
+          <div className="mb-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <label className="form-label fw-semibold mb-0">Password</label>
+              <Link 
+                to="/forgot-password" 
+                className="text-decoration-none small text-primary"
+                style={{ fontSize: "0.875rem" }}
+              >
+                Forgot Password?
+              </Link>
+            </div>
             <input
               type="password"
               className="form-control form-control-lg"
@@ -75,7 +84,7 @@ export default function Login() {
 
           <button
             type="submit"
-            className="btn btn-primary w-100 py-2 fw-semibold"
+            className="btn btn-primary w-100 py-2 fw-semibold mb-3"
             disabled={loading}
           >
             {loading ? (
@@ -91,7 +100,7 @@ export default function Login() {
 
         <div className="text-center mt-4">
           <small className="text-muted">
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <span
               role="button"
               className="text-decoration-none fw-bold text-primary"
