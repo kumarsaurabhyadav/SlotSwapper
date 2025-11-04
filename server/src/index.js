@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors'); 
+const path = require('path');
 
 // ✅ Routes import
 const authRoutes = require('./routes/auth');
@@ -11,8 +12,27 @@ const swapRoutes = require('./routes/swaps');
 
 const app = express();
 
-app.use(cors());
+// CORS configuration for production
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(process.env.NODE_ENV === 'production' ? corsOptions : { origin: '*' }));
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Security headers
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+  }
+  next();
+});
 
 
 // ✅ Use routes
@@ -31,8 +51,9 @@ const PORT = process.env.PORT || 4000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 

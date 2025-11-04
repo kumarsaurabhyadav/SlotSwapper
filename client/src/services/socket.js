@@ -2,13 +2,19 @@ import { io } from "socket.io-client";
 
 let socket = null;
 
+// Get Socket URL from environment or use default
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_URL?.replace('/api', '') || "http://localhost:4000";
+
 export const connectSocket = (userId) => {
   if (socket) {
     socket.disconnect();
   }
   
-  socket = io("http://localhost:4000", {
-    transports: ["websocket"],
+  socket = io(SOCKET_URL, {
+    transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 5,
   });
 
   socket.on("connect", () => {

@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
-    "dev": "nodemon --watch src --exec node src/index.js"
+    "dev": "nodemon --watch src --exec node src/index.js",
+    "build": "echo \"No build step required for Node.js\"",
+    "migrate": "node -e \"require('dotenv').config(); const {exec} = require('child_process'); exec('cat schema.sql | psql $DATABASE_URL', (err) => {if(err) console.error(err); else console.log('Schema applied'); process.exit(err?1:0);});\""
   },
   "keywords": [],
   "author": "",

@@ -120,14 +120,26 @@ router.post('/forgot-password', async (req, res) => {
     );
 
     // In production, send email here with reset link
-    // For now, return token (remove in production)
-    console.log(`Password reset token for ${email}: ${resetToken}`);
+    // For development/testing, return token
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
     
-    res.json({ 
-      message: 'If email exists, reset link has been sent',
-      resetToken: resetToken, // Remove this in production - only for testing
-      resetLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
-    });
+    if (process.env.NODE_ENV !== 'production') {
+      // Development mode - log token for testing
+      console.log(`Password reset token for ${email}: ${resetToken}`);
+      console.log(`Reset link: ${resetLink}`);
+      res.json({ 
+        message: 'If email exists, reset link has been sent',
+        resetToken: resetToken, // Only in development
+        resetLink: resetLink
+      });
+    } else {
+      // Production mode - send email (implement email service here)
+      // TODO: Integrate email service (SendGrid, Nodemailer, etc.)
+      // For now, just return success message
+      res.json({ 
+        message: 'If email exists, reset link has been sent to your email'
+      });
+    }
   } catch (err) {
     console.error('Forgot Password Error:', err.message);
     res.status(500).json({ error: 'Server error' });

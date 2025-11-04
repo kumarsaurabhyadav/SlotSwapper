@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: slotswapper_db_prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-slotswap}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: slotswapper_backend
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=4000
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: slotswapper_frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+      - REACT_APP_SOCKET_URL=${REACT_APP_SOCKET_URL}
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
+

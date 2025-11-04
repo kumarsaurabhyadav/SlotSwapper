@@ -2,6 +2,13 @@
 
 SlotSwapper is a full-stack web application that allows users to swap their calendar time slots with other users. Built with React frontend and Node.js/Express backend, featuring real-time notifications via Socket.io.
 
+## 📦 Repository & Deployment
+
+- **GitHub Repository**: [Your Repository Link](https://github.com/yourusername/slotswap-backend)
+- **Live Application**: [Deployed Application Link](https://your-app-url.com) _(Add your deployment URL here)_
+
+> **Note**: Replace the repository and deployment links above with your actual URLs.
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -16,13 +23,17 @@ SlotSwapper is a full-stack web application that allows users to swap their cale
 
 ## 🎯 Overview
 
+SlotSwapper is a peer-to-peer time slot scheduling application that enables users to exchange their calendar time slots with other users. The application provides a seamless experience for finding available slots, requesting swaps, and managing swap requests in real-time.
+
+### Key Capabilities
+
 SlotSwapper enables users to:
-- Create and manage calendar events
-- Mark events as "swappable" for potential swaps
-- Browse available swappable slots from other users
-- Request swaps with other users
-- Accept or reject incoming swap requests
-- Receive real-time notifications for swap activities
+- **Create and manage calendar events** - Add events with title, start time, and end time
+- **Mark events as swappable** - Convert busy slots into swappable opportunities
+- **Browse available swappable slots** - Discover slots from other users in the marketplace
+- **Request swaps** - Offer your swappable slot in exchange for another user's slot
+- **Accept or reject swap requests** - Manage incoming swap requests
+- **Receive real-time notifications** - Get instant updates via WebSocket when swap actions occur
 
 ### Example Flow:
 1. User A marks their "Team Meeting" (Tuesday 10-11 AM) as swappable
@@ -30,7 +41,7 @@ SlotSwapper enables users to:
 3. User A sees User B's slot and requests a swap, offering their Tuesday slot
 4. User B receives a real-time notification
 5. User B accepts the swap
-6. Both calendars are automatically updated
+6. Both calendars are automatically updated - User A now has Wednesday slot, User B has Tuesday slot
 
 ## ✨ Features
 
@@ -169,18 +180,9 @@ The frontend should now be running on `http://localhost:3000`
 
 ## 📚 API Documentation
 
-### Base URL
-```
-http://localhost:4000/api
-```
+For complete API documentation with request/response examples, see [API_REFERENCE.md](./API_REFERENCE.md).
 
-### Authentication
-All protected routes require a JWT token in the Authorization header:
-```
-Authorization: Bearer <your_jwt_token>
-```
-
-### Endpoints
+### Quick Reference
 
 #### Authentication
 
@@ -293,62 +295,79 @@ The application uses Socket.io for real-time notifications:
 - `swap_request_accepted` - Swap request was accepted
 - `swap_request_rejected` - Swap request was rejected
 
+> **Note**: For detailed API documentation with request/response examples, error codes, and WebSocket usage, see [API_REFERENCE.md](./API_REFERENCE.md).
+
 ## 🎨 Design Choices
 
-### Database Schema
-- **UUIDs** for all primary keys (better than sequential IDs for distributed systems)
-- **ENUM types** for status fields (BUSY, SWAPPABLE, SWAP_PENDING)
-- **Foreign keys** with CASCADE delete for data integrity
-- **Indexes** on frequently queried columns (status fields)
+This section outlines the key design decisions made during the development of SlotSwapper.
 
-### Authentication
-- **JWT tokens** with 7-day expiration
-- **bcrypt** for password hashing (10 rounds)
-- **Bearer token** authentication for protected routes
+### Database Schema
+- **UUIDs for Primary Keys**: Using UUIDs instead of sequential IDs provides better scalability for distributed systems and prevents ID enumeration attacks
+- **ENUM Types for Status**: Using PostgreSQL ENUMs (`event_status`, `swap_status`) ensures data integrity and makes status values explicit
+- **Foreign Keys with CASCADE**: Foreign key relationships with CASCADE delete ensure referential integrity and automatic cleanup
+- **Indexes on Status Fields**: Indexes on frequently queried columns (e.g., `event_status`, `swap_status`) improve query performance
+
+### Authentication & Security
+- **JWT Tokens**: Stateless authentication with 7-day expiration provides scalability and user convenience
+- **bcrypt Password Hashing**: 10 rounds of bcrypt hashing provide strong password security
+- **Bearer Token Authentication**: Standard REST API authentication pattern for protected routes
+- **Password Reset Tokens**: Time-limited UUID tokens (1-hour expiry) for secure password reset
 
 ### State Management
-- **React Hooks** (useState, useEffect) for local state
-- **API calls** refresh data after mutations
-- **Real-time updates** via Socket.io for notifications
+- **React Hooks**: Using `useState` and `useEffect` for local component state management keeps the architecture simple
+- **API-Driven Updates**: Data refresh after mutations ensures UI consistency
+- **Real-time Updates**: Socket.io provides instant notifications without polling
 
 ### Error Handling
-- **Try-catch blocks** in all async operations
-- **User-friendly error messages** in responses
-- **Transaction rollback** on errors
-- **Input validation** on both client and server
+- **Comprehensive Try-Catch**: All async operations wrapped in try-catch blocks
+- **User-Friendly Messages**: Clear, actionable error messages in API responses
+- **Transaction Rollback**: Database transactions ensure atomicity - rollback on any error
+- **Input Validation**: Validation on both client (UX) and server (security) sides
 
 ### Transaction Safety
-- **Database transactions** for swap operations
-- **Proper rollback** on errors
-- **Prevent duplicate swaps** for same events
-- **Handle concurrent requests** safely
+- **Atomic Swap Operations**: Database transactions ensure swap operations are atomic
+- **Proper Rollback**: Errors trigger automatic rollback to maintain data consistency
+- **Duplicate Prevention**: Unique constraints prevent duplicate swap requests
+- **Concurrent Request Handling**: Transaction isolation handles concurrent requests safely
 
 ## 🐛 Challenges & Solutions
 
-### Challenge 1: Transaction Handling
-**Problem:** Initial implementation used `db.query('BEGIN')` which doesn't work with connection pooling.
+This section documents the key challenges encountered during development and their solutions.
 
-**Solution:** Use `db.getClient()` to get a dedicated client for transactions, ensuring proper BEGIN/COMMIT/ROLLBACK.
+### Challenge 1: Transaction Handling
+**Problem:** Initial implementation used `db.query('BEGIN')` which doesn't work with connection pooling. PostgreSQL connection pools require a dedicated client for transactions.
+
+**Solution:** Implemented `db.getClient()` to acquire a dedicated client from the pool for each transaction. This ensures proper BEGIN/COMMIT/ROLLBACK lifecycle and prevents connection leaks.
 
 ### Challenge 2: Real-time Notifications
-**Problem:** Users needed instant notifications when swap requests were created/accepted/rejected.
+**Problem:** Users needed instant notifications when swap requests were created/accepted/rejected, but polling would be inefficient and create unnecessary load.
 
-**Solution:** Implemented Socket.io with user-specific rooms. When a swap action occurs, the server emits to the specific user's room.
+**Solution:** Implemented Socket.io with user-specific rooms. Each user joins a room (`user_{userId}`) on connection. When a swap action occurs, the server emits to the specific user's room, providing instant, targeted notifications.
 
 ### Challenge 3: Route Path Conflicts
-**Problem:** Routes in `swaps.js` had `/api` prefix, but router was already mounted on `/api`.
+**Problem:** Routes in `swaps.js` had `/api` prefix, but the router was already mounted on `/api` in `index.js`, causing 404 errors.
 
-**Solution:** Removed duplicate `/api` prefix from route definitions.
+**Solution:** Removed duplicate `/api` prefix from route definitions. Routes are now relative to their mount point.
 
 ### Challenge 4: Field Name Mismatches
-**Problem:** Frontend expected `user_name` but backend returned `owner_name`.
+**Problem:** Frontend expected `user_name` but backend SQL queries returned `owner_name`, causing undefined field errors in the UI.
 
-**Solution:** Standardized field names across backend queries and frontend components.
+**Solution:** Standardized field names across backend queries and frontend components. Updated SQL aliases to use `user_name` consistently.
 
 ### Challenge 5: Data Refresh After Actions
-**Problem:** UI didn't update automatically after swap actions.
+**Problem:** UI didn't update automatically after swap actions, requiring manual page refresh to see changes.
 
-**Solution:** Added explicit `loadRequests()` and `loadSwappableSlots()` calls after mutations, plus Socket.io listeners for automatic refresh.
+**Solution:** Added explicit data refresh calls (`loadRequests()`, `loadSwappableSlots()`) after mutations, plus Socket.io listeners that automatically refresh data when notifications are received.
+
+### Challenge 6: Swap Request Race Conditions
+**Problem:** Multiple users could request swaps for the same slot simultaneously, potentially creating duplicate or conflicting requests.
+
+**Solution:** Implemented database transactions with proper locking and validation checks. The system verifies slot availability and status before creating swap requests, preventing duplicates.
+
+### Challenge 7: Password Reset Security
+**Problem:** Password reset tokens needed to be secure and time-limited, but also easily accessible for testing.
+
+**Solution:** Implemented UUID-based tokens with 1-hour expiry. In development mode, tokens are returned in the response for testing. In production mode, tokens should be sent via email (email service integration pending).
 
 ## 🔮 Future Improvements
 
@@ -375,6 +394,34 @@ FRONTEND_URL=http://localhost:3000
 
 ### Frontend Configuration
 Update `client/src/services/api.js` and `client/src/services/socket.js` if backend URL changes.
+
+## 🚀 Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
+**Quick Deploy Options:**
+
+1. **Render (Free Tier)** - Backend + Database
+2. **Vercel (Free Tier)** - Frontend
+3. **Railway** - Full-stack deployment
+4. **Heroku** - Backend
+5. **Docker Compose** - Self-hosted
+
+**Environment Variables for Production:**
+
+Backend:
+```env
+NODE_ENV=production
+DATABASE_URL=your_production_database_url
+JWT_SECRET=strong_secret_min_32_chars
+FRONTEND_URL=https://your-frontend-domain.com
+```
+
+Frontend:
+```env
+REACT_APP_API_URL=https://your-backend-domain.com/api
+REACT_APP_SOCKET_URL=https://your-backend-domain.com
+```
 
 ## 🧪 Testing
 
