@@ -43,13 +43,17 @@ export default function Dashboard() {
 
   // 🔹 Update slot status (BUSY <-> SWAPPABLE)
   const toggleStatus = async (id, currentStatus) => {
+    // Don't allow changing status if it's in a pending swap
+    if (currentStatus === "SWAP_PENDING") {
+      return alert("This slot is in a pending swap and cannot be changed");
+    }
     const newStatus = currentStatus === "SWAPPABLE" ? "BUSY" : "SWAPPABLE";
     try {
       await API.patch(`/events/${id}`, { status: newStatus });
       loadEvents();
     } catch (err) {
       console.error(err);
-      alert("Error updating slot status");
+      alert(err.response?.data?.error || "Error updating slot status");
     }
   };
 

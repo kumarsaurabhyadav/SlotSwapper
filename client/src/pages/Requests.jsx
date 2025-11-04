@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
+import {
+  onSwapRequestReceived,
+  onSwapRequestAccepted,
+  onSwapRequestRejected,
+  removeSocketListeners,
+  getSocket,
+} from "../services/socket";
 
 export default function Requests() {
   const [incoming, setIncoming] = useState([]);
@@ -19,17 +26,41 @@ export default function Requests() {
 
   useEffect(() => {
     loadRequests();
+
+    // Set up real-time notifications
+    const socket = getSocket();
+    if (socket) {
+      onSwapRequestReceived((data) => {
+        alert(`🔔 ${data.message}`);
+        loadRequests();
+      });
+
+      onSwapRequestAccepted((data) => {
+        alert(`✅ ${data.message}`);
+        loadRequests();
+      });
+
+      onSwapRequestRejected((data) => {
+        alert(`❌ ${data.message}`);
+        loadRequests();
+      });
+    }
+
+    // Cleanup listeners on unmount
+    return () => {
+      removeSocketListeners();
+    };
   }, []);
 
   // 🔹 Handle response (accept / reject)
   const respondToRequest = async (id, accepted) => {
     try {
-      await API.post(`/swap-response/${id}`, { accepted });
+      await API.post(`/swap-response/${id}`, { accept: accepted });
       alert(accepted ? "Swap accepted ✅" : "Swap rejected ❌");
       loadRequests(); // Refresh list
     } catch (err) {
       console.error(err);
-      alert("Error responding to request");
+      alert(err.response?.data?.error || "Error responding to request");
     }
   };
 
@@ -55,10 +86,10 @@ export default function Requests() {
                     {req.from_user_name} wants to swap:
                   </h6>
                   <p className="small mb-1">
-                    <strong>Your Slot:</strong> {req.their_slot_title}
+                    <strong>Your Slot:</strong> {req.my_slot_title}
                   </p>
                   <p className="small mb-2">
-                    <strong>Their Slot:</strong> {req.my_slot_title}
+                    <strong>Their Slot:</strong> {req.their_slot_title}
                   </p>
                   <div className="d-flex gap-2">
                     <button

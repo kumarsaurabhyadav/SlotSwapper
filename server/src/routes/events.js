@@ -11,6 +11,13 @@ router.post('/', auth, async (req, res) => {
     if (!title || !start_time || !end_time)
       return res.status(400).json({ error: 'All fields required' });
 
+    // Validate that end_time is after start_time
+    const start = new Date(start_time);
+    const end = new Date(end_time);
+    if (end <= start) {
+      return res.status(400).json({ error: 'End time must be after start time' });
+    }
+
     const { rows } = await db.query(
       `INSERT INTO events (user_id, title, start_time, end_time, status)
        VALUES ($1, $2, $3, $4, 'BUSY')
@@ -52,6 +59,20 @@ router.patch('/:id', auth, async (req, res) => {
     if (existing.rows.length === 0)
       return res.status(404).json({ error: 'Event not found' });
 
+    // Don't allow changing status if it's in a pending swap
+    if (existing.rows[0].status === 'SWAP_PENDING' && status && status !== 'SWAP_PENDING') {
+      return res.status(400).json({ error: 'Cannot change status of event in pending swap' });
+    }
+
+    // Validate time if both are provided
+    if (start_time && end_time) {
+      const start = new Date(start_time);
+      const end = new Date(end_time);
+      if (end <= start) {
+        return res.status(400).json({ error: 'End time must be after start time' });
+      }
+    }
+
     const { rows } = await db.query(
       `UPDATE events
        SET title = COALESCE($1, title),
@@ -74,6 +95,20 @@ router.patch('/:id', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Check if event exists and belongs to user
+    const existing = await db.query(
+      'SELECT * FROM events WHERE id=$1 AND user_id=$2',
+      [id, req.user.id]
+    );
+    if (existing.rows.length === 0)
+      return res.status(404).json({ error: 'Event not found' });
+
+    // Don't allow deleting events in pending swaps
+    if (existing.rows[0].status === 'SWAP_PENDING') {
+      return res.status(400).json({ error: 'Cannot delete event in pending swap' });
+    }
+
     await db.query('DELETE FROM events WHERE id=$1 AND user_id=$2', [
       id,
       req.user.id

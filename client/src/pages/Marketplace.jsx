@@ -45,6 +45,11 @@ export default function Marketplace() {
       });
       alert("Swap request sent successfully ✅");
       setShowModal(false);
+      setSelectedSlot("");
+      setTargetSlot(null);
+      // Refresh data
+      loadSwappableSlots();
+      loadMySlots();
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || "Error sending request");

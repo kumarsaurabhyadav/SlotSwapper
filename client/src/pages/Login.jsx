@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { connectSocket } from "../services/socket";
+import { decodeToken } from "../utils/auth";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -11,6 +13,13 @@ export default function Login() {
     try {
       const { data } = await API.post("/auth/login", form);
       localStorage.setItem("token", data.token);
+      
+      // Connect Socket.io after login
+      const decoded = decodeToken(data.token);
+      if (decoded?.id) {
+        connectSocket(decoded.id);
+      }
+      
       alert("Welcome back! 👋");
       navigate("/dashboard");
     } catch (err) {

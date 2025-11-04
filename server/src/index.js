@@ -40,6 +40,14 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("🟢 User connected:", socket.id);
 
+  // Join user-specific room when authenticated
+  socket.on("join_user_room", (userId) => {
+    if (userId) {
+      socket.join(`user_${userId}`);
+      console.log(`✅ User ${userId} joined their room`);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("🔴 User disconnected:", socket.id);
   });

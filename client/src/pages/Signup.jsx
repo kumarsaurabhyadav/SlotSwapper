@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { connectSocket } from "../services/socket";
+import { decodeToken } from "../utils/auth";
 
 export default function Signup() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -11,6 +13,13 @@ export default function Signup() {
     try {
       const { data } = await API.post("/auth/signup", form);
       localStorage.setItem("token", data.token);
+      
+      // Connect Socket.io after signup
+      const decoded = decodeToken(data.token);
+      if (decoded?.id) {
+        connectSocket(decoded.id);
+      }
+      
       alert("Account created successfully 🎉");
       navigate("/dashboard");
     } catch (err) {
