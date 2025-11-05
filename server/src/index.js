@@ -1,4 +1,3 @@
-// server/src/index.js
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -12,17 +11,19 @@ const swapRoutes = require('./routes/swaps');
 
 const app = express();
 
-// CORS configuration for production
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+// Use express.json (modern) and keep urlencoded parser for forms
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// --- CORS configuration (unified and robust) ---
+const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+app.use(cors({
+  origin: allowedOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(process.env.NODE_ENV === 'production' ? corsOptions : { origin: '*' }));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+}));
 
 // Security headers
 app.use((req, res, next) => {
@@ -34,14 +35,13 @@ app.use((req, res, next) => {
   next();
 });
 
-
 // ✅ Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api', swapRoutes);
 
 // Test route
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health', (req, res) => res.json({ ok: true, environment: process.env.NODE_ENV || 'development' }));
 const http = require("http");
 const { Server } = require("socket.io");
 
@@ -51,7 +51,7 @@ const PORT = process.env.PORT || 4000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: allowedOrigin,
     methods: ["GET", "POST"],
     credentials: true,
   },
