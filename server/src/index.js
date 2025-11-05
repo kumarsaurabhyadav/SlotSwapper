@@ -11,21 +11,35 @@ const swapRoutes = require('./routes/swaps');
 
 const app = express();
 
-// Use express.json (modern) and keep urlencoded parser for forms
+// ✅ Body parsers
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// --- CORS configuration (unified and robust) ---
-const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+// --- ✅ CORS Configuration (Multiple Frontend Support) ---
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://slot-swapper.vercel.app',              // your main frontend
+  'https://slot-swapper-flax-seven.vercel.app',   // your friend's frontend
+];
 
-app.use(cors({
-  origin: allowedOrigin,
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS Blocked Origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
-// Security headers
+app.use(cors(corsOptions));
+
+// ✅ Security headers (Production only)
 app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -40,8 +54,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api', swapRoutes);
 
-// Test route
-app.get('/health', (req, res) => res.json({ ok: true, environment: process.env.NODE_ENV || 'development' }));
+// ✅ Health Check Endpoint
+app.get('/health', (req, res) =>
+  res.json({ ok: true, environment: process.env.NODE_ENV || 'development' })
+);
+
+// ✅ Setup Socket.io
 const http = require("http");
 const { Server } = require("socket.io");
 
@@ -51,17 +69,16 @@ const PORT = process.env.PORT || 4000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigin,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-// 🔹 On connection
+// 🔹 Handle Socket.io connections
 io.on("connection", (socket) => {
   console.log("🟢 User connected:", socket.id);
 
-  // Join user-specific room when authenticated
   socket.on("join_user_room", (userId) => {
     if (userId) {
       socket.join(`user_${userId}`);
@@ -74,7 +91,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// ✅ Export io instance (so we can use it in routes)
+// ✅ Export io instance (for use in routes)
 app.set("io", io);
 
 // ✅ Start server
